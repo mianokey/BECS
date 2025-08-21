@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->string('code')->unique();
             $table->string('name');
             $table->enum('type', ['AHP', 'Private']);
-            $table->enum('status', ['active', 'completed', 'on_hold'])->default('active');
+            $table->enum('status', ['planning', 'active', 'on_hold', 'completed'])->default('active');
             $table->string('client_name')->nullable();
             $table->text('description')->nullable();
             $table->date('start_date')->nullable();

@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, FolderOpen, CheckSquare, Clock, Users, AlertTriangle, TrendingUp, Building2, UserPlus, Upload, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TaskAssignmentModal from "@/components/modals/task-assignment-modal";
 import StaffCreationModal from "@/components/modals/staff-creation-modal";
 import BulkImportModal from "@/components/modals/bulk-import-modal";
+import { laravelApiRequest } from "@/lib/laravel-api";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -15,9 +16,11 @@ export default function Dashboard() {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
-  const { data: stats } = useQuery({
-    queryKey: ['/api/dashboard/stats'],
-  });
+const { data: stats, isLoading, isError, error } = useQuery({
+  queryKey: ['dashboardStats'], // cache key
+  queryFn: () => laravelApiRequest("GET", "/api/dashboard/stats"),
+});
+
 
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
@@ -25,7 +28,12 @@ export default function Dashboard() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['/api/tasks'],
+    queryFn: () => laravelApiRequest("GET", "/api/tasks"),
   });
+
+  useEffect(() => {
+  console.log("Fetched tasks:", tasks);
+}, [tasks]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ['/api/projects'],

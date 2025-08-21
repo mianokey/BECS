@@ -1,7 +1,8 @@
 <?php
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Models\Task;
 
 class TaskController extends Controller
@@ -24,7 +25,6 @@ class TaskController extends Controller
             'assignee_id' => 'required|exists:users,id',
             'project_id' => 'nullable|exists:projects,id',
             'priority' => 'required|in:high,medium,low',
-            'status' => 'required|in:not_started,in_progress,submitted,completed',
             'target_completion_date' => 'nullable|date',
             'is_weekly_deliverable' => 'boolean',
         ]);

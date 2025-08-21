@@ -20,6 +20,9 @@ class Task extends Model
         'target_completion_date',
         'is_weekly_deliverable',
     ];
+    protected $casts = [
+    'target_completion_date' => 'datetime:Y-m-d', 
+    ];
 
     public function assignee()
     {

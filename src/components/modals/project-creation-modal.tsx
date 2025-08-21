@@ -11,6 +11,7 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, CalendarDays } from "lucide-react";
+import { laravelApiRequest } from "@/lib/laravel-api";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -54,7 +55,7 @@ export default function ProjectCreationModal({ isOpen, onClose }: ProjectCreatio
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectForm) => {
-      await apiRequest("POST", "/api/projects", data);
+      await laravelApiRequest("POST", "/api/projects", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });

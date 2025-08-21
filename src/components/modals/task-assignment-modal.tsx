@@ -17,21 +17,21 @@ import { laravelApiRequest } from "@/lib/laravel-api";
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  assigneeId: z.string().min(1, "Assignee is required"),
+  assignee_id: z.string().min(1, "Assignee is required"),
   reviewerId: z.string().optional(),
-  projectId: z.string().min(1, "Project is required"),
-  targetCompletionDate: z.string().min(1, "Due date is required"),
+  project_id: z.string().min(1, "Project is required"),
+  target_completion_date: z.string().min(1, "Due date is required"),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
-  isWeeklyDeliverable: z.boolean().default(false),
+  is_weekly_deliverable: z.boolean().default(false),
 });
 
 interface TaskAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId?: number;
+  project_id?: number;
 }
 
-export default function TaskAssignmentModal({ isOpen, onClose, projectId }: TaskAssignmentModalProps) {
+export default function TaskAssignmentModal({ isOpen, onClose, project_id }: TaskAssignmentModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,34 +40,38 @@ export default function TaskAssignmentModal({ isOpen, onClose, projectId }: Task
     defaultValues: {
       title: "",
       description: "",
-      assigneeId: "",
+      assignee_id: "",
       reviewerId: "",
-      projectId: projectId ? projectId.toString() : "",
-      targetCompletionDate: "",
+      project_id: project_id ? project_id.toString() : "",
+      target_completion_date: "",
       priority: "medium",
-      isWeeklyDeliverable: false,
+      is_weekly_deliverable: false,
     },
   });
 
-const { data: users } = useQuery({
-  queryKey: ['/api/users'],
-  queryFn: async () => {
-    const data = await laravelApiRequest('GET', '/api/users'); // apiRequest adds the auth token automatically
-    return data;
-  },
-});
+  const { data: users } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const data = await laravelApiRequest('GET', '/api/users');
+      return data;
+    },
+  });
 
 
 
   const { data: projects } = useQuery({
     queryKey: ['/api/projects'],
+    queryFn: async () => {
+      const data = await laravelApiRequest('GET', '/api/projects');
+      return data;
+    },
   });
 
   const createTaskMutation = useMutation({
     mutationFn: async (data: z.infer<typeof taskSchema>) => {
-      await apiRequest('POST', '/api/tasks', {
+      await laravelApiRequest('POST', '/api/tasks', {
         ...data,
-        projectId: parseInt(data.projectId),
+        project_id: parseInt(data.project_id),
       });
     },
     onSuccess: () => {
@@ -119,7 +123,7 @@ const { data: users } = useQuery({
 
             <FormField
               control={form.control}
-              name="assigneeId"
+              name="assignee_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assign To</FormLabel>
@@ -127,14 +131,14 @@ const { data: users } = useQuery({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select staff member">
-        {field.value === "" ? "None" : undefined}
-      </SelectValue>
+                          {field.value === "" ? "None" : undefined}
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {staffUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.staff_id} - {user.first_name} {user.last_name}  
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.staff_id} - {user.first_name} {user.last_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -158,8 +162,8 @@ const { data: users } = useQuery({
                     </FormControl>
                     <SelectContent>
                       {reviewerUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                           {user.staff_id} - {user.first_name} {user.last_name}
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.staff_id} - {user.first_name} {user.last_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -171,7 +175,7 @@ const { data: users } = useQuery({
 
             <FormField
               control={form.control}
-              name="projectId"
+              name="project_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project</FormLabel>
@@ -184,7 +188,7 @@ const { data: users } = useQuery({
                     <SelectContent>
                       {projects?.map((project) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.code} - {project.name}
+                          {project.code} - {project.name}  [{project.status}]
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -196,7 +200,7 @@ const { data: users } = useQuery({
 
             <FormField
               control={form.control}
-              name="targetCompletionDate"
+              name="target_completion_date"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Due Date</FormLabel>
@@ -233,13 +237,13 @@ const { data: users } = useQuery({
 
             <FormField
               control={form.control}
-              name="isWeeklyDeliverable"
+              name="is_weekly_deliverable"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -272,8 +276,8 @@ const { data: users } = useQuery({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={createTaskMutation.isPending}
                 className="bg-becs-blue hover:bg-becs-navy"
               >

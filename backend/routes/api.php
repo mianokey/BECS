@@ -2,8 +2,9 @@
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\TaskController;
+use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\StatsController;
+use App\Http\Controllers\Api\TaskController;
 
 
 // Public routes
@@ -42,6 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/projects/{id}', [ProjectController::class, 'show']);  // GET single project
     Route::put('/projects/{id}', [ProjectController::class, 'update']); // PUT update project
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy']); // DELETE project
+});
+
+
+//dashsboard stats
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard/stats', [StatsController::class, 'index']);
 });
 
 
