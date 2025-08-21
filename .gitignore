@@ -1,0 +1,12 @@
+# Laravel
+/vendor
+/storage/*.key
+/.env
+/.env.*
+/public/storage
+/public/hot
+
+# Node
+/node_modules
+npm-debug.log*
+yarn-error.log*
