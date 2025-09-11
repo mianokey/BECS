@@ -5,23 +5,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Clock, Users, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { AttendanceRecord, User } from "@/types";
 
 export default function Attendance() {
   const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<string>(user?.id || "");
   const [dateRange, setDateRange] = useState<string>("week");
 
-  const { data: users } = useQuery({
-    queryKey: ['/api/users'],
-  });
+const { data: users = [] } = useQuery<User[]>({
+  queryKey: ['/api/users'],
+});
 
-  const { data: attendance } = useQuery({
-    queryKey: ['/api/attendance', { userId: selectedUser }],
-  });
+const { data: attendance = [] } = useQuery<AttendanceRecord[]>({
+  queryKey: ['/api/attendance', { userId: selectedUser }],
+});
 
-  const { data: todayAttendance } = useQuery({
-    queryKey: ['/api/attendance/today'],
-  });
+const { data: todayAttendance = [] } = useQuery<AttendanceRecord[]>({
+  queryKey: ['/api/attendance/today'],
+});
 
   const isAdmin = user?.role === 'admin' || user?.role === 'director';
 
@@ -42,12 +43,12 @@ export default function Attendance() {
     });
   };
 
-  const calculateTotalHours = (timeIn: string, timeOut?: string) => {
-    if (!timeOut) return 0;
-    const start = new Date(timeIn);
-    const end = new Date(timeOut);
-    return ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
-  };
+  // const calculateTotalHours = (timeIn: string, timeOut?: string) => {
+  //   if (!timeOut) return 0;
+  //   const start = new Date(timeIn);
+  //   const end = new Date(timeOut);
+  //   return ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
+  // };
 
   const getAttendanceStatus = (timeIn?: string, timeOut?: string) => {
     if (!timeIn) return { status: 'Absent', color: 'bg-red-100 text-becs-red' };
@@ -102,7 +103,7 @@ export default function Attendance() {
                 <SelectItem value="all">All Staff</SelectItem>
                 {users?.filter(u => u.role === 'staff').map(staff => (
                   <SelectItem key={staff.id} value={staff.id}>
-                    {staff.firstName} {staff.lastName}
+                    {staff.first_name} {staff.last_name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -246,12 +247,12 @@ export default function Attendance() {
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 becs-gold-gradient rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold text-sm">
-                            {staff?.firstName?.[0]}{staff?.lastName?.[0]}
+                            {staff?.first_name?.[0]}{staff?.last_name?.[0]}
                           </span>
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">
-                            {staff?.firstName} {staff?.lastName}
+                            {staff?.first_name} {staff?.last_name}
                           </p>
                           <p className="text-sm text-becs-gray">{staff?.department}</p>
                         </div>

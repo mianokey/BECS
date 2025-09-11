@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Project } from "@shared/schema";
+import { Project } from "@/types";
 import { FolderOpen, Plus } from "lucide-react";
 
 interface ProjectCardProps {
   project: Project;
   tasksCount: number;
   completionPercentage: number;
-  onAssignTask: (projectId: number) => void;
+  onAssignTask: (projectId: string) => void;
   onProjectClick?: (project: Project) => void;
 }
 
@@ -77,10 +77,10 @@ export default function ProjectCard({
             />
           </div>
           
-          {project.clientName && (
+          {project.client_name && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-becs-gray">Client:</span>
-              <span className="font-medium text-gray-900">{project.clientName}</span>
+              <span className="font-medium text-gray-900">{project.client_name}</span>
             </div>
           )}
           

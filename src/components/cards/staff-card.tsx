@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { User } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
+import { User } from "@/types";
 
 interface StaffCardProps {
   staff: User;
@@ -33,12 +32,12 @@ export default function StaffCard({
         <div className="flex items-center space-x-3 mb-4">
           <div className="w-10 h-10 becs-gold-gradient rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-sm">
-              {getInitials(staff.firstName, staff.lastName)}
+              {getInitials(staff.first_name, staff.last_name)}
             </span>
           </div>
           <div>
             <p className="font-medium text-gray-900">
-              {staff.firstName} {staff.lastName}
+              {staff.first_name} {staff.last_name}
             </p>
             <p className="text-sm text-becs-gray">{staff.department}</p>
           </div>

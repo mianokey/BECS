@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { laravelApiRequest } from "@/lib/laravel-api";
 
@@ -85,11 +84,33 @@ export default function Sidebar() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update attendance",
+        description: error instanceof Error ? error.message : "Failed to update attendance",
         variant: "destructive",
       });
     },
   });
+
+  // inside Sidebar component
+const logoutMutation = useMutation({
+  mutationFn: async () => {
+    await laravelApiRequest("POST", "/api/auth/logout");
+  },
+  onSuccess: () => {
+    queryClient.clear(); // clear all cached queries
+    toast({
+      title: "Signed Out",
+      description: "You have been logged out successfully",
+    });
+    setLocation("/login"); // redirect to login page
+  },
+  onError: () => {
+    toast({
+      title: "Error",
+      description: "Logout failed, please try again",
+      variant: "destructive",
+    });
+  },
+});
 
   const isAdmin = user?.role === 'admin' || user?.role === 'director';
 
@@ -113,8 +134,8 @@ export default function Sidebar() {
   const staffNavigation = [
     { name: 'My Tasks', href: '/tasks', icon: CheckSquare },
     { name: 'Attendance', href: '/attendance', icon: Clock },
-    { name: 'Leave Management', href: '/leave', icon: Calendar },
-    { name: 'Templates', href: '/templates', icon: FileText },
+    // { name: 'Leave Management', href: '/leave', icon: Calendar },
+    // { name: 'Templates', href: '/templates', icon: FileText },
   ];
 
   const navigation = isAdmin ? adminNavigation : staffNavigation;
@@ -203,12 +224,13 @@ export default function Sidebar() {
 
         {/* Logout Button */}
         <Button
-          onClick={() => window.location.href = '/api/auth/staff-logout'}
+          onClick={() => logoutMutation.mutate()}
+          disabled={logoutMutation.isPending}
           variant="ghost"
           className="w-full mt-4 text-gray-600 hover:text-becs-red hover:bg-red-50"
         >
           <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
+          {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
         </Button>
       </div>
     </div>

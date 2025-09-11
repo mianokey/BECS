@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,10 +8,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { laravelApiRequest } from "@/lib/laravel-api";
+
+// ✅ Define types for API data
+interface User {
+  id: number;
+  staff_id: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
+interface Project {
+  id: number;
+  code: string;
+  name: string;
+  status: string;
+}
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -49,27 +63,25 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
     },
   });
 
-  const { data: users } = useQuery({
-    queryKey: ['/api/users'],
+  // ✅ users typed as User[]
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
     queryFn: async () => {
-      const data = await laravelApiRequest('GET', '/api/users');
-      return data;
+      return await laravelApiRequest("GET", "/api/users");
     },
   });
 
 
-
-  const { data: projects } = useQuery({
-    queryKey: ['/api/projects'],
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
     queryFn: async () => {
-      const data = await laravelApiRequest('GET', '/api/projects');
-      return data;
+      return await laravelApiRequest("GET", "/api/projects");
     },
   });
 
   const createTaskMutation = useMutation({
     mutationFn: async (data: z.infer<typeof taskSchema>) => {
-      await laravelApiRequest('POST', '/api/tasks', {
+      await laravelApiRequest("POST", "/api/tasks", {
         ...data,
         project_id: parseInt(data.project_id),
       });
@@ -79,11 +91,11 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
         title: "Success",
         description: "Task assigned successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       form.reset();
       onClose();
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to assign task",
@@ -96,8 +108,8 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
     createTaskMutation.mutate(data);
   };
 
-  const staffUsers = users?.filter(user => user.role === 'staff') || [];
-  const reviewerUsers = users?.filter(user => user.role === 'admin' || user.role === 'director') || [];
+  const staffUsers = users.filter((u) => u.role === "staff");
+  const reviewerUsers = users.filter((u) => u.role === "admin" || u.role === "director");
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -107,6 +119,8 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            
+            {/* Task Title */}
             <FormField
               control={form.control}
               name="title"
@@ -121,6 +135,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Assign To */}
             <FormField
               control={form.control}
               name="assignee_id"
@@ -130,9 +145,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
                   <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select staff member">
-                          {field.value === "" ? "None" : undefined}
-                        </SelectValue>
+                        <SelectValue placeholder="Select staff member" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -148,6 +161,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Reviewer */}
             <FormField
               control={form.control}
               name="reviewerId"
@@ -173,6 +187,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Project */}
             <FormField
               control={form.control}
               name="project_id"
@@ -186,9 +201,9 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {projects?.map((project) => (
+                      {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.code} - {project.name}  [{project.status}]
+                          {project.code} - {project.name} [{project.status}]
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -198,6 +213,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Due Date */}
             <FormField
               control={form.control}
               name="target_completion_date"
@@ -212,6 +228,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Priority */}
             <FormField
               control={form.control}
               name="priority"
@@ -235,6 +252,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Weekly Deliverable */}
             <FormField
               control={form.control}
               name="is_weekly_deliverable"
@@ -247,9 +265,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Weekly Deliverable
-                    </FormLabel>
+                    <FormLabel>Weekly Deliverable</FormLabel>
                     <FormDescription>
                       This task will be assigned weekly and linked to the task management system
                     </FormDescription>
@@ -258,6 +274,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -272,6 +289,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
               )}
             />
 
+            {/* Actions */}
             <div className="flex justify-end space-x-3 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
@@ -281,7 +299,7 @@ export default function TaskAssignmentModal({ isOpen, onClose, project_id }: Tas
                 disabled={createTaskMutation.isPending}
                 className="bg-becs-blue hover:bg-becs-navy"
               >
-                {createTaskMutation.isPending ? 'Assigning...' : 'Assign Task'}
+                {createTaskMutation.isPending ? "Assigning..." : "Assign Task"}
               </Button>
             </div>
           </form>

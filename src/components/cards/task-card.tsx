@@ -2,16 +2,16 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Download, FileText, Clock, User, Calendar, MessageSquare, Eye, CheckCircle, XCircle, AlertTriangle, RotateCcw } from "lucide-react";
+import { Upload, Download, FileText, Clock,Calendar, MessageSquare, Eye, CheckCircle, XCircle, RotateCcw,User as UserIcon} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import TaskUploadModal from "@/components/modals/task-upload-modal";
 import DocumentReviewModal from "@/components/modals/document-review-modal";
-import type { Task, User as UserType } from "@shared/schema";
+import type { Task,User } from "@/types"; // or relative path
 
 interface TaskCardProps {
   task: Task;
-  users: UserType[];
+  users: User[];
   showUploadButton?: boolean;
   showDownloadButton?: boolean;
 }
@@ -131,19 +131,19 @@ export default function TaskCard({ task, users, showUploadButton = true, showDow
           {/* Task Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-becs-navy" />
+              <UserIcon className="h-4 w-4 text-becs-navy" />
               <span className="text-becs-text-secondary">Assigned:</span>
               <span className="font-medium text-becs-text-primary">
-                {assignedUser?.firstName || 'Unassigned'}
+                {assignedUser?.first_name || 'Unassigned'}
               </span>
             </div>
             
             {reviewer && (
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-becs-gold" />
+                <UserIcon className="h-4 w-4 text-becs-gold" />
                 <span className="text-becs-text-secondary">Reviewer:</span>
                 <span className="font-medium text-becs-text-primary">
-                  {reviewer.firstName}
+                  {reviewer.first_name}
                 </span>
               </div>
             )}

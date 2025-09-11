@@ -12,10 +12,11 @@ import { CalendarDays, Clock, FileText, Plus, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { format, differenceInDays } from "date-fns";
+import { laravelApiRequest } from "@/lib/laravel-api";
+import type { Leave } from "@/types";
 
 const leaveApplicationSchema = z.object({
   leaveType: z.string().min(1, "Please select a leave type"),
@@ -47,7 +48,6 @@ const statusColors = {
 export default function Leave() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<LeaveApplicationForm>({
@@ -62,13 +62,19 @@ export default function Leave() {
   });
 
   // Fetch leave applications
-  const { data: leaveApplications = [], isLoading } = useQuery({
+  const { data: leaveApplications = [], isLoading } = useQuery<Leave[]>({
     queryKey: ["/api/leave-applications"],
+    queryFn: async () => {
+      return await laravelApiRequest("GET", "/api/leave-applications");
+    },
   });
 
   // Fetch leave templates
   const { data: leaveTemplates = [] } = useQuery({
     queryKey: ["/api/leave-templates"],
+    queryFn: async () => {
+      return await laravelApiRequest("GET", "/api/leave-templates");
+    },
   });
 
   // Create leave application mutation
@@ -78,7 +84,7 @@ export default function Leave() {
       const endDate = new Date(data.endDate);
       const totalDays = differenceInDays(endDate, startDate) + 1;
 
-      return apiRequest("/api/leave-applications", "POST", {
+      return await laravelApiRequest("POST", "/api/leave-applications", {
         ...data,
         totalDays,
       });
@@ -92,7 +98,7 @@ export default function Leave() {
         description: "Your leave application has been submitted for review.",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to submit leave application. Please try again.",
@@ -196,11 +202,7 @@ export default function Leave() {
                           <FormItem>
                             <FormLabel className="text-becs-text-primary font-medium">Start Date</FormLabel>
                             <FormControl>
-                              <Input
-                                type="date"
-                                className="border-becs-soft-gray"
-                                {...field}
-                              />
+                              <Input type="date" className="border-becs-soft-gray" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -213,11 +215,7 @@ export default function Leave() {
                           <FormItem>
                             <FormLabel className="text-becs-text-primary font-medium">End Date</FormLabel>
                             <FormControl>
-                              <Input
-                                type="date"
-                                className="border-becs-soft-gray"
-                                {...field}
-                              />
+                              <Input type="date" className="border-becs-soft-gray" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -250,11 +248,7 @@ export default function Leave() {
                         <FormItem>
                           <FormLabel className="text-becs-text-primary font-medium">Supporting Document (Optional)</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="URL to supporting document"
-                              className="border-becs-soft-gray"
-                              {...field}
-                            />
+                            <Input placeholder="URL to supporting document" className="border-becs-soft-gray" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -315,7 +309,7 @@ export default function Leave() {
                 <div>
                   <p className="text-sm font-medium text-becs-text-secondary">Pending Requests</p>
                   <p className="text-2xl font-bold text-becs-text-primary">
-                    {filteredApplications.filter((app: any) => app.status === 'pending').length}
+                    {filteredApplications.filter((app: any) => app.status === "pending").length}
                   </p>
                 </div>
                 <FileText className="h-8 w-8 text-becs-navy" />
@@ -376,30 +370,27 @@ export default function Leave() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <Badge className={leaveTypeInfo.color}>
-                              {leaveTypeInfo.label}
-                            </Badge>
+                            <Badge className={leaveTypeInfo.color}>{leaveTypeInfo.label}</Badge>
                             <Badge className={statusColors[application.status as keyof typeof statusColors]}>
                               {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                             </Badge>
                           </div>
                           <h3 className="font-medium text-becs-text-primary mb-1">
-                            {format(new Date(application.startDate), 'MMM dd, yyyy')} - {format(new Date(application.endDate), 'MMM dd, yyyy')}
+                            {format(new Date(application.startDate), "MMM dd, yyyy")} -{" "}
+                            {format(new Date(application.endDate), "MMM dd, yyyy")}
                           </h3>
                           <p className="text-sm text-becs-text-secondary mb-2">
-                            {application.totalDays} day{application.totalDays !== 1 ? 's' : ''}
+                            {application.totalDays} day{application.totalDays !== 1 ? "s" : ""}
                           </p>
-                          <p className="text-sm text-becs-text-secondary line-clamp-2">
-                            {application.reason}
-                          </p>
+                          <p className="text-sm text-becs-text-secondary line-clamp-2">{application.reason}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-becs-text-secondary">
-                            Applied {format(new Date(application.createdAt), 'MMM dd, yyyy')}
+                            Applied {format(new Date(application.createdAt), "MMM dd, yyyy")}
                           </p>
                           {application.approvedAt && (
                             <p className="text-xs text-becs-text-secondary mt-1">
-                              {application.status} {format(new Date(application.approvedAt), 'MMM dd, yyyy')}
+                              {application.status} {format(new Date(application.approvedAt), "MMM dd, yyyy")}
                             </p>
                           )}
                         </div>

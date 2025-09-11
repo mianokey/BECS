@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 interface TaskUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  taskId: number;
+  taskId: string;
   taskTitle: string;
 }
 

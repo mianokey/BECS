@@ -3,15 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, CheckSquare, Clock, User, FolderOpen, Calendar, Target, Users, ArrowRight, AlertCircle } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "wouter";
+import { Plus, CheckSquare, Clock, User as UserIcon, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import TaskAssignmentModal from "@/components/modals/task-assignment-modal";
 import TaskCard from "@/components/cards/task-card";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { laravelApiRequest } from "@/lib/laravel-api";
+import { Task, User } from "@/types";
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -20,26 +20,30 @@ export default function Tasks() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<string>("all");
 
-  const { data: tasks } = useQuery({
-    queryKey: ['/api/tasks'],
+  // 👇 explicitly tell React Query what each query returns
+  const { data: tasks = [] } = useQuery<Task[]>({
+    queryKey: ["/api/tasks"],
+    queryFn: () => laravelApiRequest("GET", "/api/tasks"),
   });
 
-  const { data: users } = useQuery({
-    queryKey: ['/api/users'],
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    queryFn: () => laravelApiRequest("GET", "/api/users"),
   });
 
-  const { data: projects } = useQuery({
-    queryKey: ['/api/projects'],
+  const { data: projects = [] } = useQuery<{ id: string; code: string; name: string }[]>({
+    queryKey: ["/api/projects"],
+    queryFn: () => laravelApiRequest("GET", "/api/projects"),
   });
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'director';
+  const isAdmin = user?.role === "admin" || user?.role === "director";
 
   const updateTaskMutation = useMutation({
-    mutationFn: async ({ taskId, updates }: { taskId: number; updates: any }) => {
-      await apiRequest('PATCH', `/api/tasks/${taskId}`, updates);
+    mutationFn: async ({ taskId, updates }: { taskId: string; updates: any }) => {
+      await apiRequest("PATCH", `/api/tasks/${taskId}`, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       toast({
         title: "Success",
         description: "Task updated successfully",
@@ -54,62 +58,59 @@ export default function Tasks() {
     },
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-700';
-      case 'in_progress': return 'bg-blue-100 text-becs-blue';
-      case 'overdue': return 'bg-red-100 text-becs-red';
-      case 'submitted': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-becs-red text-white';
-      case 'medium': return 'bg-becs-gold text-white';
-      case 'low': return 'bg-green-500 text-white';
-      default: return 'bg-gray-500 text-white';
+      case "high":
+        return "bg-becs-red text-white";
+      case "medium":
+        return "bg-becs-gold text-white";
+      case "low":
+        return "bg-green-500 text-white";
+      default:
+        return "bg-gray-500 text-white";
     }
   };
 
-  const handleStatusChange = (taskId: number, newStatus: string) => {
+  const handleStatusChange = (taskId: string, newStatus: string) => {
     updateTaskMutation.mutate({ taskId, updates: { status: newStatus } });
   };
 
   // Filter tasks based on user role and selected staff
-  const filteredTasks = tasks?.filter(task => {
-    if (!isAdmin) {
-      // Staff can only see their own tasks
-      return task.assigneeId === user?.id;
-    }
-    
-    // Admin can see all tasks, but can filter by staff
-    if (selectedStaff === "all") {
-      return true;
-    }
-    
-    return task.assigneeId === selectedStaff;
-  }) || [];
+  const filteredTasks =
+    tasks?.filter((task) => {
+      if (!isAdmin) {
+        // Staff can only see their own tasks
+        return task.assigneeId === user?.id;
+      }
 
-  // Separate weekly deliverables from general tasks
-  const weeklyDeliverables = filteredTasks.filter(task => task.isWeeklyDeliverable);
-  const generalTasks = filteredTasks.filter(task => !task.isWeeklyDeliverable);
+      // Admin can see all tasks, but can filter by staff
+      if (selectedStaff === "all") {
+        return true;
+      }
+
+      return task.assigneeId === selectedStaff;
+    }) || [];
 
   // Group tasks by staff for admin view
-  const tasksByStaff = isAdmin ? users?.filter(u => u.role === 'staff').map(staff => ({
-    staff,
-    tasks: filteredTasks.filter(task => task.assigneeId === staff.id)
-  })) : [];
+  const tasksByStaff = isAdmin
+    ? users
+        ?.filter((u: User) => u.role === "staff")
+        .map((staff: User) => ({
+          staff,
+          tasks: filteredTasks.filter((task: Task) => task.assigneeId === staff.id),
+        }))
+    : [];
 
-  const getAssigneeName = (assigneeId: string) => {
-    const assignee = users?.find(u => u.id === assigneeId);
-    return assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Unknown';
+  const getAssigneeName = (assigneeId?: string) => {
+    if (!assigneeId) return "Unassigned";
+    const assignee = users?.find((u) => u.id === assigneeId);
+    return assignee ? `${assignee.first_name} ${assignee.last_name}` : "Unknown";
   };
 
-  const getProjectName = (projectId: number) => {
-    const project = projects?.find(p => p.id === projectId);
-    return project ? `${project.code} - ${project.name}` : 'Unknown Project';
+  const getProjectName = (projectId?: string) => {
+    if (!projectId) return "Unknown Project";
+    const project = projects?.find((p) => p.id === projectId);
+    return project ? `${project.code} - ${project.name}` : "Unknown Project";
   };
 
   return (
@@ -118,10 +119,10 @@ export default function Tasks() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-becs-navy">
-            {isAdmin ? 'Task Management' : 'My Tasks'}
+            {isAdmin ? "Task Management" : "My Tasks"}
           </h1>
           <p className="text-becs-gray">
-            {isAdmin ? 'Manage and assign tasks to team members' : 'View and update your assigned tasks'}
+            {isAdmin ? "Manage and assign tasks to team members" : "View and update your assigned tasks"}
           </p>
         </div>
         <div className="flex items-center space-x-4">
@@ -132,19 +133,16 @@ export default function Tasks() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Staff</SelectItem>
-                {users?.filter(u => u.role === 'staff').map(staff => (
+                {users?.filter((u) => u.role === "staff").map((staff) => (
                   <SelectItem key={staff.id} value={staff.id}>
-                    {staff.firstName} {staff.lastName}
+                    {staff.first_name} {staff.last_name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
           {isAdmin && (
-            <Button 
-              onClick={() => setIsTaskModalOpen(true)}
-              className="bg-becs-blue hover:bg-becs-navy"
-            >
+            <Button onClick={() => setIsTaskModalOpen(true)} className="bg-becs-blue hover:bg-becs-navy">
               <Plus className="w-4 h-4 mr-2" />
               New Task
             </Button>
@@ -160,8 +158,8 @@ export default function Tasks() {
             <Card key={staff.id} className="border border-gray-100">
               <CardHeader className="border-b border-gray-100">
                 <CardTitle className="text-becs-navy flex items-center">
-                  <User className="w-5 h-5 mr-2" />
-                  {staff.firstName} {staff.lastName}
+                  <UserIcon className="w-5 h-5 mr-2" />
+                  {staff.first_name} {staff.last_name}
                   <Badge variant="secondary" className="ml-2">
                     {tasks.length} tasks
                   </Badge>
@@ -173,11 +171,7 @@ export default function Tasks() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {tasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        users={users || []}
-                      />
+                      <TaskCard key={task.id} task={task} users={users || []} />
                     ))}
                   </div>
                 )}
@@ -203,7 +197,7 @@ export default function Tasks() {
                 <CheckSquare className="w-16 h-16 text-becs-gray mx-auto mb-4" />
                 <p className="text-becs-gray text-lg">No tasks found</p>
                 <p className="text-becs-gray text-sm">
-                  {isAdmin ? 'Create your first task to get started' : 'No tasks assigned to you yet'}
+                  {isAdmin ? "Create your first task to get started" : "No tasks assigned to you yet"}
                 </p>
               </div>
             ) : (
@@ -213,19 +207,15 @@ export default function Tasks() {
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                        <Badge className={getPriorityColor(task.priority)}>
-                          {task.priority}
-                        </Badge>
+                        <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
                       </div>
-                      
-                      {task.description && (
-                        <p className="text-sm text-becs-gray mb-4">{task.description}</p>
-                      )}
-                      
+
+                      {task.description && <p className="text-sm text-becs-gray mb-4">{task.description}</p>}
+
                       <div className="space-y-3 text-sm">
                         {isAdmin && (
                           <div className="flex items-center text-becs-gray">
-                            <User className="w-4 h-4 mr-2" />
+                            <UserIcon className="w-4 h-4 mr-2" />
                             {getAssigneeName(task.assigneeId)}
                           </div>
                         )}
@@ -235,15 +225,15 @@ export default function Tasks() {
                         </div>
                         <div className="flex items-center text-becs-gray">
                           <Clock className="w-4 h-4 mr-2" />
-                          Due: {new Date(task.targetCompletionDate).toLocaleDateString()}
+                          Due:{" "}
+                          {task.targetCompletionDate
+                            ? new Date(task.targetCompletionDate).toLocaleDateString()
+                            : "No due date"}
                         </div>
                       </div>
-                      
+
                       <div className="mt-4 flex items-center justify-between">
-                        <Select
-                          value={task.status}
-                          onValueChange={(value) => handleStatusChange(task.id, value)}
-                        >
+                        <Select value={task.status} onValueChange={(value) => handleStatusChange(task.id, value)}>
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
@@ -254,7 +244,7 @@ export default function Tasks() {
                             <SelectItem value="completed">Completed</SelectItem>
                           </SelectContent>
                         </Select>
-                        
+
                         {task.isWeeklyDeliverable && (
                           <Badge variant="outline" className="text-becs-blue border-becs-blue">
                             Weekly
@@ -270,10 +260,7 @@ export default function Tasks() {
         </Card>
       )}
 
-      <TaskAssignmentModal
-        isOpen={isTaskModalOpen}
-        onClose={() => setIsTaskModalOpen(false)}
-      />
+      <TaskAssignmentModal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)} />
     </div>
   );
 }

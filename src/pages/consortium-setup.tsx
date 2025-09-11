@@ -10,16 +10,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Trash2, Save, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Deliverable,ExistingDeliverable, User } from "@/types";
 
-interface Deliverable {
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  assigneeId?: string;
-  reviewerId?: string;
-  targetCompletionDate?: string;
-  isWeeklyDeliverable: boolean;
-}
+
 
 export default function ConsortiumSetup() {
   const { user } = useAuth();
@@ -36,14 +29,14 @@ export default function ConsortiumSetup() {
     }
   ]);
 
-  const { data: users } = useQuery({
-    queryKey: ['/api/users'],
-  });
+const { data: users = [] } = useQuery<User[]>({
+  queryKey: ['/api/users'],
+});
 
-  const { data: existingDeliverables } = useQuery({
-    queryKey: ['/api/consortiums', selectedConsortium, 'deliverables'],
-    enabled: !!selectedConsortium,
-  });
+const { data: existingDeliverables = [] } = useQuery<ExistingDeliverable[]>({
+  queryKey: ['/api/consortiums', selectedConsortium, 'deliverables'],
+  enabled: !!selectedConsortium,
+});
 
   const createDeliverablesMutation = useMutation({
     mutationFn: async (data: { deliverables: Deliverable[] }) => {
@@ -99,9 +92,24 @@ export default function ConsortiumSetup() {
     createDeliverablesMutation.mutate({ deliverables: validDeliverables });
   };
 
-  const staffUsers = users?.filter(u => u.role === 'staff') || [];
-  const reviewerUsers = users?.filter(u => u.role === 'admin' || u.role === 'director') || [];
+const staffUsers = users
+  .filter(u => u.role === 'staff')
+  .map(u => ({
+    ...u,
+    firstName: u.first_name,
+    lastName: u.last_name,
+  }));
+  
 
+const reviewerUsers = users
+  .filter(u => u.role === 'admin' || u.role === 'director')
+  .map(u => ({
+    ...u,
+    firstName: u.first_name,
+    lastName: u.last_name,
+  }));
+  
+  // Access control: only admin and director can access this page
   if (user?.role !== 'admin' && user?.role !== 'director') {
     return (
       <div className="flex items-center justify-center min-h-screen">

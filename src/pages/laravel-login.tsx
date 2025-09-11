@@ -16,7 +16,7 @@ export default function LaravelLogin() {
     e.preventDefault();
     if (staffId && password) {
       login({
-        staff_id: staffId,
+        staffId: staffId,
         password: password,
       });
     }

@@ -16,7 +16,7 @@ export interface LaravelUser {
 }
 
 export interface LoginCredentials {
-  login: string; // staff_id or email
+ staffId: string;
   password: string;
 }
 

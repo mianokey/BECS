@@ -39,8 +39,7 @@ export default function StaffCreationModal({ isOpen, onClose }: StaffCreationMod
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
-    watch
+    setValue
   } = useForm<StaffForm>({
     resolver: zodResolver(staffSchema),
     defaultValues: {

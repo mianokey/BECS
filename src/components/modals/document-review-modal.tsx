@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,10 +9,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { CheckCircle, XCircle, AlertTriangle, FileText, Calendar, User } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, FileText, Calendar, User as UserIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Task, User as UserType } from "@shared/schema";
+import type { review, Task,User } from "@/types";
+import { laravelApiRequest } from "@/lib/laravel-api";
 
 const reviewSchema = z.object({
   status: z.enum(['approved', 'needs_rework', 'rejected']),
@@ -26,7 +26,7 @@ interface DocumentReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task;
-  users: UserType[];
+  users: User[];
 }
 
 export default function DocumentReviewModal({ isOpen, onClose, task, users }: DocumentReviewModalProps) {
@@ -41,11 +41,14 @@ export default function DocumentReviewModal({ isOpen, onClose, task, users }: Do
     },
   });
 
-  // Fetch existing reviews for this task
-  const { data: reviews } = useQuery({
-    queryKey: [`/api/tasks/${task.id}/reviews`],
-    enabled: isOpen,
-  });
+
+  const { data: reviews = [] } = useQuery<review[]>({
+  queryKey: ['/api/taks'],
+  queryFn: () => laravelApiRequest("GET", "/api/reviews"),
+});
+
+
+ 
 
   const submitReviewMutation = useMutation({
     mutationFn: async (data: ReviewForm) => {
@@ -76,7 +79,7 @@ export default function DocumentReviewModal({ isOpen, onClose, task, users }: Do
 
   const getAssigneeName = () => {
     const assignee = users.find(u => u.id === task.assigneeId);
-    return assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Unknown';
+    return assignee ? `${assignee.first_name} ${assignee.last_name}` : 'Unknown';
   };
 
   const getStatusIcon = (status: string) => {
@@ -124,7 +127,7 @@ export default function DocumentReviewModal({ isOpen, onClose, task, users }: Do
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-becs-gray" />
+                  <UserIcon className="w-4 h-4 text-becs-gray" />
                   <span className="text-sm text-becs-gray">Submitted by:</span>
                   <span className="font-medium">{getAssigneeName()}</span>
                 </div>

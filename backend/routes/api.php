@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\NotificationController;
 
 
 // Public routes
@@ -43,6 +44,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/projects/{id}', [ProjectController::class, 'show']);  // GET single project
     Route::put('/projects/{id}', [ProjectController::class, 'update']); // PUT update project
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy']); // DELETE project
+});
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index']); // list all notifications
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']); // unread count
+    Route::post('/notifications/mark-read/{id}', [NotificationController::class, 'markAsRead']); // mark single read
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']); // mark all
 });
 
 

@@ -9,11 +9,18 @@ export default function Header() {
   const { user } = useAuth();
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
-  const { data: unreadCount } = useQuery({
-    queryKey: ['/api/notifications/unread-count'],
-    enabled: !!user?.id,
-  });
+const { data: unreadCount } = useQuery({
+  queryKey: ['/api/notifications/unread-count'],
+  queryFn: async () => {
+    const res = await fetch('/api/notifications/unread-count');
+    const data = await res.json();
+    console.log("🔍 API unread-count response:", data);
+    return data;
+  },
+  enabled: !!user?.id,
+});
 
+  
   const isAdmin = user?.role === 'admin' || user?.role === 'director';
 
   return (

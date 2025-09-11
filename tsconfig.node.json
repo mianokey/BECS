@@ -8,6 +8,5 @@
   },
   "include": [
     "vite.config.ts",
-    "vite.laravel.config.ts"
   ]
 }

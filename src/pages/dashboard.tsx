@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FolderOpen, CheckSquare, Clock, Users, AlertTriangle, TrendingUp, Building2, UserPlus, Upload, Plus } from "lucide-react";
+import { FolderOpen, CheckSquare, Clock, Users, AlertTriangle, TrendingUp, Building2, UserPlus, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { startOfWeek, endOfWeek, parseISO, isWithinInterval } from "date-fns";
 import TaskAssignmentModal from "@/components/modals/task-assignment-modal";
 import StaffCreationModal from "@/components/modals/staff-creation-modal";
 import BulkImportModal from "@/components/modals/bulk-import-modal";
@@ -16,14 +17,15 @@ export default function Dashboard() {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
-const { data: stats, isLoading, isError, error } = useQuery({
-  queryKey: ['dashboardStats'], // cache key
-  queryFn: () => laravelApiRequest("GET", "/api/dashboard/stats"),
-});
+  const { data: stats } = useQuery({
+    queryKey: ['dashboardStats'], // cache key
+    queryFn: () => laravelApiRequest("GET", "/api/dashboard/stats"),
+  });
 
 
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
+    queryFn: () => laravelApiRequest("GET", "/api/users"),
   });
 
   const { data: tasks = [] } = useQuery({
@@ -31,12 +33,10 @@ const { data: stats, isLoading, isError, error } = useQuery({
     queryFn: () => laravelApiRequest("GET", "/api/tasks"),
   });
 
-  useEffect(() => {
-  console.log("Fetched tasks:", tasks);
-}, [tasks]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ['/api/projects'],
+    queryFn: () => laravelApiRequest("GET", "/api/projects"),
   });
 
   const isAdmin = user?.role === 'admin' || user?.role === 'director';
@@ -44,7 +44,7 @@ const { data: stats, isLoading, isError, error } = useQuery({
   // Group projects by type and consortium
   const ahpProjects = projects.filter((p: any) => p.type === 'AHP');
   const privateProjects = projects.filter((p: any) => p.type === 'Private');
-  
+
   // Group AHP projects by consortium
   const consortiumGroups = ahpProjects.reduce((acc: any, project: any) => {
     const consortium = project.consortium || 'unassigned';
@@ -53,19 +53,27 @@ const { data: stats, isLoading, isError, error } = useQuery({
     return acc;
   }, {});
 
-  // Get current week's tasks (incomplete at top)
-  const currentWeek = new Date();
-  const weekNumber = Math.ceil((currentWeek.getTime() - new Date(currentWeek.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
-  
-  const weeklyTasks = tasks.filter((task: any) => 
-    task.isWeeklyDeliverable && 
-    task.weekNumber === weekNumber && 
-    task.year === currentWeek.getFullYear() &&
-    !task.isArchived
-  );
 
-  const incompleteTasks = weeklyTasks.filter((task: any) => task.status !== 'completed');
-  const completedTasks = weeklyTasks.filter((task: any) => task.status === 'completed');
+  // Get current week's date range (Mon → Sun)
+  const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const end = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+  // ✅ Weekly tasks (all tasks marked as weekly)
+  const weeklyTasks = tasks.filter((t: any) => t.is_weekly_deliverable);
+  const incompleteTasks = weeklyTasks.filter((t: any) => t.status !== "completed");
+  const completedTasks = tasks.filter((t: any) => {
+    if (t.status !== "completed") return false;
+    // Prefer actual completion date if available, fallback to target
+    const dateStr = t.actualCompletionDate || t.targetCompletionDate;
+    if (!dateStr) return false;
+    const date = parseISO(dateStr);
+    return isWithinInterval(date, { start, end });
+  });
+
+  console.log("All Weekly Tasks", weeklyTasks);
+  console.log("Incomplete Weekly Tasks", incompleteTasks);
+  console.log("Completed Tasks This Week", completedTasks);
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -181,7 +189,7 @@ const { data: stats, isLoading, isError, error } = useQuery({
                   {[1, 2, 3, 4, 5].map(num => {
                     const consortiumKey = `consortium_${num}`;
                     const consortiumProjects = consortiumGroups[consortiumKey] || [];
-                    
+
                     return (
                       <div key={num} className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -241,7 +249,7 @@ const { data: stats, isLoading, isError, error } = useQuery({
                         </Badge>
                       </div>
                       <p className="text-sm text-becs-text-secondary mb-2">
-                        Assigned to: {users.find((u: any) => u.id === task.assigneeId)?.firstName || 'Unassigned'}
+                        Assigned to:  <b>{task.assignee?.first_name +" "+ task.assignee?.last_name || 'Unassigned'}</b>
                       </p>
                       {task.targetCompletionDate && (
                         <p className="text-xs text-becs-text-secondary">
@@ -277,10 +285,10 @@ const { data: stats, isLoading, isError, error } = useQuery({
                         <h4 className="font-medium text-green-800">{task.title}</h4>
                         <Badge className="bg-green-100 text-green-800 border-green-200">
                           Completed
-                        </Badge>
+                        </Badge> 
                       </div>
                       <p className="text-sm text-green-700 mb-2">
-                        By: {users.find((u: any) => u.id === task.assigneeId)?.firstName || 'Unknown'}
+                        By: {users.find((u: any) => u.id === task.assignee_id)?.firstName || 'Unknown'}
                       </p>
                       {task.actualCompletionDate && (
                         <p className="text-xs text-green-600">
@@ -329,16 +337,16 @@ const { data: stats, isLoading, isError, error } = useQuery({
                   Staff Management
                 </CardTitle>
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     onClick={() => setIsBulkImportOpen(true)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="border-becs-blue text-becs-blue hover:bg-becs-blue hover:text-white"
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     Import Data
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => setIsStaffModalOpen(true)}
                     size="sm"
                     className="bg-becs-blue hover:bg-becs-navy"
@@ -359,7 +367,7 @@ const { data: stats, isLoading, isError, error } = useQuery({
                   <p className="text-2xl font-bold text-blue-900">{users.length}</p>
                   <p className="text-sm text-blue-700">Active members</p>
                 </div>
-                
+
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-green-800">Present Today</h4>
@@ -370,7 +378,7 @@ const { data: stats, isLoading, isError, error } = useQuery({
                   </p>
                   <p className="text-sm text-green-700">Currently working</p>
                 </div>
-                
+
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-purple-800">Departments</h4>
@@ -382,7 +390,7 @@ const { data: stats, isLoading, isError, error } = useQuery({
                   <p className="text-sm text-purple-700">Active departments</p>
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <h5 className="font-medium text-becs-text-primary mb-3">Recent Staff Activity</h5>
                 <div className="space-y-2">

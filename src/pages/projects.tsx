@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FolderOpen, Upload, Clock, Calendar, CheckSquare, ArrowRight, Target, Users } from "lucide-react";
+import { Plus, FolderOpen, Upload, Clock, Calendar, CheckSquare, ArrowRight, Target } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import TaskAssignmentModal from "@/components/modals/task-assignment-modal";
@@ -18,6 +18,7 @@ import {
   DialogTitle, 
   DialogDescription 
 } from "@/components/ui/dialog";
+import { Project, Task } from "@/types";
 
 export default function Projects() {
   const { user } = useAuth();
@@ -28,18 +29,32 @@ export default function Projects() {
   const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
 
-  const { data: projects } = useQuery({
-    queryKey: ['/api/projects'],
-  });
+  
 
-  const { data: tasks } = useQuery({
-    queryKey: ['/api/tasks'],
-  });
+const { data: tasks = [] } = useQuery<Task[]>({
+  queryKey: ['/api/tasks'],
+  queryFn: async () => {
+    const res = await fetch('/api/tasks');
+    if (!res.ok) throw new Error('Failed to fetch tasks');
+    return res.json();
+  },
+});
+
+
+const { data: projects = [] } = useQuery<Project[]>({
+  queryKey: ['/api/projects'],
+  queryFn: async () => {
+    const res = await fetch('/api/projects');
+    if (!res.ok) throw new Error('Failed to fetch projects');
+    return res.json();
+  },
+});
+
 
   const isAdmin = user?.role === 'admin' || user?.role === 'director';
 
-  const handleAssignTask = (projectId: number) => {
-    setSelectedProjectId(projectId);
+  const handleAssignTask = (projectId: string) => {
+     setSelectedProjectId(Number(projectId));
     setIsTaskModalOpen(true);
   };
 
@@ -48,7 +63,7 @@ export default function Projects() {
     setIsProjectDetailsOpen(true);
   };
 
-  const getProjectStats = (projectId: number) => {
+  const getProjectStats = (projectId: string) => {
     const projectTasks = tasks?.filter(t => t.projectId === projectId) || [];
     const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
     const completionPercentage = projectTasks.length > 0 ? 
@@ -179,7 +194,7 @@ export default function Projects() {
                             {task.priority}
                           </Badge>
                           <span className="text-xs text-becs-gray">
-                            Due: {new Date(task.targetDate).toLocaleDateString()}
+                            Due: new Date(task.targetCompletionDate ?? Date.now()).toLocaleDateString()
                           </span>
                         </div>
                       </div>
@@ -256,7 +271,7 @@ export default function Projects() {
                             Weekly
                           </Badge>
                           <span className="text-xs text-becs-gray">
-                            Next: {new Date(task.targetDate).toLocaleDateString()}
+                            Next: Date(task.targetCompletionDate ?? Date.now()).toLocaleDateString()
                           </span>
                         </div>
                       </div>
@@ -404,7 +419,7 @@ export default function Projects() {
           setIsTaskModalOpen(false);
           setSelectedProjectId(undefined);
         }}
-        projectId={selectedProjectId}
+        project_id={selectedProjectId}
       />
 
       <ProjectCreationModal

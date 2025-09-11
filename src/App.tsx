@@ -9,11 +9,9 @@ import Projects from "@/pages/projects";
 import Tasks from "@/pages/tasks";
 import Attendance from "@/pages/attendance";
 import Invoices from "@/pages/invoices";
-import Templates from "@/pages/templates";
 import Leave from "@/pages/leave";
 import DataEntry from "@/pages/data-entry";
 import ConsortiumSetup from "@/pages/consortium-setup";
-import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Layout from "@/components/layout/layout";
 import { queryClient } from "./lib/queryClient";
@@ -39,27 +37,42 @@ function Router() {
       createdAt: backendUser.created_at,
       updatedAt: backendUser.updated_at,
     };
-    login(normalizedUser, token); // <-- pass token
-    setLocation("/");
+    login(normalizedUser, token);
+    setLocation("/"); // go to dashboard
   };
 
-  if (!isAuthenticated) return <Login onLoginSuccess={handleLoginSuccess} />;
-
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/projects" component={Projects} />
-        <Route path="/tasks" component={Tasks} />
-        <Route path="/attendance" component={Attendance} />
-        <Route path="/invoices" component={Invoices} />
-        <Route path="/templates" component={Templates} />
-        <Route path="/leave" component={Leave} />
-        <Route path="/data-entry" component={DataEntry} />
-        <Route path="/consortium-setup" component={ConsortiumSetup} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      {/* Public Routes */}
+      <Route path="/login">
+        <Login onLoginSuccess={handleLoginSuccess} />
+      </Route>
+
+      {/* Protected Routes */}
+      <Route>
+        {isAuthenticated ? (
+          <Layout>
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/projects" component={Projects} />
+              <Route path="/tasks" component={Tasks} />
+              <Route path="/attendance" component={Attendance} />
+              <Route path="/invoices" component={Invoices} />
+              <Route path="/leave" component={Leave} />
+              <Route path="/data-entry" component={DataEntry} />
+              <Route path="/consortium-setup" component={ConsortiumSetup} />
+
+              {/* Catch-all for 404 */}
+              <Route>
+                <NotFound />
+              </Route>
+            </Switch>
+          </Layout>
+        ) : (
+          <Login onLoginSuccess={handleLoginSuccess} />
+        )}
+      </Route>
+    </Switch>
   );
 }
 

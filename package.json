@@ -4,9 +4,9 @@
   "description": "BECS Consultancy Laravel Frontend - React UI designed for Laravel API consumption",
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.laravel.config.ts",
-    "build": "tsc && vite build --config vite.laravel.config.ts",
-    "preview": "vite preview --config vite.laravel.config.ts"
+    "dev": "vite --config vite.config.ts",
+    "build": "tsc --noEmitOnError false && vite build --config vite.config.ts",
+    "preview": "vite preview --config vite.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
@@ -41,14 +41,19 @@
     "@tanstack/react-query-devtools": "^5.85.5",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "cmdk": "^1.1.1",
     "date-fns": "^2.30.0",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^10.16.16",
+    "input-otp": "^1.4.2",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-day-picker": "^8.10.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
     "react-icons": "^4.12.0",
+    "react-resizable-panels": "^3.0.5",
+    "recharts": "^3.1.2",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.8.0",

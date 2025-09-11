@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Download, FileText } from "lucide-react";
+import { Upload, Download} from "lucide-react";
 
 interface BulkImportModalProps {
   isOpen: boolean;
