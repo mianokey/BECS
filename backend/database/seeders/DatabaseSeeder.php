@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Clear existing users for a fresh start (optional)
-        User::truncate();
+        User::delete();
 
         // Admin User
         User::create([
