@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    base: '/', // serves from root domain
+    base: '/', // serves from root domaindfs
     server: {
       port: 3000,
       host: '0.0.0.0',
