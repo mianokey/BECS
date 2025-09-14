@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig(({ mode }) => {
-  // Load env variables based on mode (development/production)
+  // Load env variables for the current mode
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
@@ -26,18 +26,18 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    base: '/', // serves from root domaindfs
+    base: '/', // Serve React app from root
     server: {
       port: 3000,
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: env.VITE_LARAVEL_API_URL || 'http://localhost:8000',
+          target: env.VITE_API_URL,
           changeOrigin: true,
           secure: false,
         },
         '/sanctum': {
-          target: env.VITE_LARAVEL_API_URL || 'http://localhost:8000',
+          target: env.VITE_API_URL,
           changeOrigin: true,
           secure: false,
         },
