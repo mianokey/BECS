@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    base: '/', // Serve React app from root
+    base: '/dist/',
     server: {
       port: 3000,
       host: '0.0.0.0',
